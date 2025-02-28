@@ -1,27 +1,34 @@
-import "reflect-metadata";
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
-import { Role } from "../_helpers/role.enum"; 
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 
 @Entity()
 export class User {
     @PrimaryGeneratedColumn()
-    id: number;
+    id!: number;
 
-    @Column({ type: "varchar", length: 255, unique: true })
-    email: string;
+    @Column({ unique: true })
+    email!: string;
 
-    @Column({ type: "varchar", length: 255 })
-    passwordHash: string;
+    @Column()
+    password!: string;
 
-    @Column({ type: "varchar", length: 50 })
-    title: string;
+    @Column()
+    title!: string;
 
-    @Column({ type: "varchar", length: 100 })
-    firstName: string;
+    @Column()
+    firstName!: string;
 
-    @Column({ type: "varchar", length: 100 })
-    lastName: string;
+    @Column()
+    lastName!: string;
 
-    @Column({ type: "enum", enum: Role, default: Role.User })
-    role: Role;
+    @Column()
+    role!: string;
+
+    @CreateDateColumn()
+    created_at!: Date;
+
+    @UpdateDateColumn()
+    updated_at!: Date;
+
+    @DeleteDateColumn()
+    deleted_at!: Date;
 }

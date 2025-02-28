@@ -1,64 +1,55 @@
-import { AppDataSource } from "../_helpers/db";
-import { User } from "./user.entity";
-import { Repository } from "typeorm";
-import * as bcrypt from "bcryptjs";
+import { Repository } from 'typeorm';
+import { AppDataSource } from '../_helpers/db';
+import { User } from './user.entity';
+import * as bcrypt from 'bcryptjs';
 
 export class UserService {
-    private userRepository: Repository<User>;
-
-    constructor() {
-        this.userRepository = AppDataSource.getRepository(User);
-    }
+    private userRepository: Repository<User> = AppDataSource.getRepository(User);
 
     async getAll() {
-        return await this.userRepository.find({
-            select: ["id", "email", "title", "firstName", "lastName", "role"], 
+        return this.userRepository.find({ 
+            select: ['id', 'email', 'title', 'firstName', 'lastName', 'role', 'created_at', 'updated_at'],
+            withDeleted: false
         });
     }
 
     async getById(id: number) {
-        const user = await this.userRepository.findOneBy({ id });
-        if (!user) throw new Error("User not found");
-        return user;
+        return this.userRepository.findOne({ 
+            where: { id },
+            withDeleted: false
+        });
     }
 
-    async create(params: Partial<User> & { password?: string }) {
-        if (await this.userRepository.findOneBy({ email: params.email })) {
-            throw new Error(`Email "${params.email}" is already registered`);
+    async create(data: Partial<User>) {
+        if (await this.userRepository.findOneBy({ email: data.email })) {
+            throw new Error(`Email ${data.email} is already registered`);
         }
 
-        const user = this.userRepository.create(params);
-
-        // Handle password separately
-        if (params.password) {
-            user.passwordHash = await bcrypt.hash(params.password, 10);
-            delete (params as any).password; 
+        if (data.password) {
+            data.password = await bcrypt.hash(data.password, 10);
         }
 
-        await this.userRepository.save(user);
+        const user = this.userRepository.create(data);
+        return this.userRepository.save(user);
     }
 
-    async update(id: number, params: Partial<User> & { password?: string }) {
+    async update(id: number, data: Partial<User>) {
         const user = await this.getById(id);
+        if (!user) throw new Error('User not found');
 
-        if (params.email && user.email !== params.email) {
-            if (await this.userRepository.findOneBy({ email: params.email })) {
-                throw new Error(`Email "${params.email}" is already taken`);
-            }
-        }
-        if (params.password) {
-            params.passwordHash = await bcrypt.hash(params.password, 10);
-            delete (params as any).password;
+        if (data.password) {
+            data.password = await bcrypt.hash(data.password, 10);
         }
 
-        Object.assign(user, params);
-        await this.userRepository.save(user);
+        Object.assign(user, data);
+        return this.userRepository.save(user);
     }
 
     async delete(id: number) {
         const user = await this.getById(id);
-        await this.userRepository.remove(user);
+        if (!user) throw new Error('User not found');
+
+        // This will perform a soft delete (sets deleted_at)
+        return this.userRepository.softRemove(user);
     }
 }
-
-export const userService = new UserService();

@@ -1,26 +1,49 @@
-import "reflect-metadata";
-import { DataSource } from "typeorm";
-import { User } from "../users/user.entity";
-import * as config from "../config.json";
+import 'reflect-metadata';
+import dotenv from 'dotenv';
+import mysql from 'mysql2/promise';
+import { DataSource } from 'typeorm';
+import { User } from '../users/user.entity';
+
+dotenv.config();
+
+const dbName = process.env.DB_NAME || 'arjane_api_typeorm';
+
+async function createDatabase() {
+    try {
+        const connection = await mysql.createConnection({
+            host: process.env.DB_HOST || 'localhost',
+            port: Number(process.env.DB_PORT || 3306),
+            user: process.env.DB_USER || 'root',
+            password: process.env.DB_PASS || ''
+        });
+
+        await connection.query(`CREATE DATABASE IF NOT EXISTS ${dbName}`);
+        console.log(`Database ${dbName} created or verified.`);
+        await connection.end();
+    } catch (error) {
+        console.error('Error creating database:', error);
+        throw error;
+    }
+}
 
 export const AppDataSource = new DataSource({
-    type: "mysql",
-    host: config.database.host,
-    port: config.database.port,
-    username: config.database.user,
-    password: config.database.password,
-    database: config.database.database,
-    synchronize: false, // Auto-sync DB structure (consider using migrations in production)
-    dropSchema:false,
-    logging: false,
-    entities: [User], // Add all entities here
-    migrations: [],
-    subscribers: [],
+    type: 'mysql',
+    host: process.env.DB_HOST || 'localhost',
+    port: Number(process.env.DB_PORT || 3306),
+    username: process.env.DB_USER || 'root',
+    password: process.env.DB_PASS || '',
+    database: dbName,
+    entities: [User],
+    synchronize: true,
 });
 
-// Initialize the database connection
-AppDataSource.initialize()
-    .then(() => {
-        console.log("Database connected successfully!");
-    })
-    .catch((error) => console.error("Database connection failed:", error));
+export const initializeDatabase = async () => {
+    try {
+        await createDatabase();
+        await AppDataSource.initialize();
+        console.log('Database connection initialized');
+    } catch (error) {
+        console.error('Database initialization error:', error);
+        throw error;
+    }
+};
